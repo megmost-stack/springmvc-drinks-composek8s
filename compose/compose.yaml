@@ -27,7 +27,9 @@ services:
       SPRING_DATASOURCE_URL: "jdbc:mysql://mvc-mysql-1:3306/restdb"
       SPRING_DATASOURCE_USERNAME: "restadmin"
       SPRING_DATASOURCE_PASSWORD: "mome"
-      SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:9000"
+      SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:8080"
+      # ZWINGEND ERFORDERLICH: Damit er die Gateway-URL übernimmt
+      SERVER_FORWARD_HEADERS_STRATEGY: "framework"
     depends_on:
       drinksDB:
           condition: service_healthy
@@ -40,7 +42,7 @@ services:
     networks:
       - drinksLab-net
     environment:
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:9000"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
     volumes:
@@ -50,13 +52,13 @@ services:
 
   drinks-shop:
     container_name: drinks-gateway
-    image: megmus/spring-drinksapp-gateway:0.0.3-SNAPSHOT
+    image: megmus/spring-drinksapp-gateway:0.0.4-SNAPSHOT
     ports:
       - "8080:8080"
     networks:
       - drinksLab-net
     environment:
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:9000"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
 
       SPRING_CLOUD_GATEWAY_ROUTES_0_ID: "auth-route"
