@@ -1,0 +1,75 @@
+services:
+  drinksDB:
+    container_name: mvc-mysql-1
+    image: mysql:9.7.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: restdb
+      MYSQL_USER: restadmin
+      MYSQL_PASSWORD: mome
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "restadmin", "-pmome"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - drinksLab-net
+
+
+  auth-server:
+    container_name: auth-server
+    image: megmus/spring-auth-server:0.0.3-SNAPSHOT
+    ports:
+      - "9000:9000"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mvc-mysql-1:3306/restdb"
+      SPRING_DATASOURCE_USERNAME: "restadmin"
+      SPRING_DATASOURCE_PASSWORD: "mome"
+      SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:9000"
+    depends_on:
+      drinksDB:
+          condition: service_healthy
+
+  drinks-service:
+    container_name: drinks-app
+    image: megmus/spring-drinksapp:0.0.3-SNAPSHOT
+    ports:
+      - "8085:8085"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:9000"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
+    volumes:
+      - ~/myapp-logs/:/workspace/logs
+    depends_on:
+      - auth-server
+
+  drinks-shop:
+    container_name: drinks-gateway
+    image: megmus/spring-drinksapp-gateway:0.0.3-SNAPSHOT
+    ports:
+      - "8080:8080"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:9000"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+
+      SPRING_CLOUD_GATEWAY_ROUTES_0_ID: "auth-route"
+      SPRING_CLOUD_GATEWAY_ROUTES_0_URI: "http://auth-server:9000"
+      SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: "Path=/oauth2/**"
+
+      SPRING_CLOUD_GATEWAY_ROUTES_1_ID: "drinks-service-route"
+      SPRING_CLOUD_GATEWAY_ROUTES_1_URI: "http://drinks-service:8085"
+      SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: "Path=/api/**"
+    depends_on:
+      - auth-server
+      - drinks-service
+
+networks:
+  drinksLab-net:
+    driver: bridge
