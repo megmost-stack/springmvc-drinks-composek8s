@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: drinks-shop
+  name: drinks-shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drinks-shop
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: drinks-shop
+    spec:
+      containers:
+      - image: megmus/spring-drinksapp-gateway:0.0.4-SNAPSHOT
+        name: spring-drinksapp-gateway
+        env:
+          - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+            value: "http://localhost:8080"
+          - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+            value: "http://auth-server:9000/oauth2/jwks"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_0_ID
+            value: "auth-route"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_0_URI
+            value: "http://auth-server:9000"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0
+            value: "Path=/oauth2/**"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_1_ID
+            value: "drinks-service-route"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_1_URI
+            value: "http://drinksapp:8085"
+          - name: SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0
+            value: "Path=/api/**"
+
+        resources: {}
+status: {}

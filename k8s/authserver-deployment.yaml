@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: auth-server
+  name: auth-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-server
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      containers:
+      - image: megmus/spring-auth-server:0.0.3-SNAPSHOT
+        name: spring-auth-server
+        resources: {}
+        env:
+          - name: SPRING_DATASOURCE_URL
+            value: "jdbc:mysql://drinksdb:3306/restdb"
+          - name: SPRING_DATASOURCE_USERNAME
+            value: "restadmin"
+          - name:  SPRING_DATASOURCE_PASSWORD
+            value: "mome"
+          - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
+            value: "http://localhost:8080"
+          - name: SERVER_FORWARD_HEADERS_STRATEGY
+            value: "framework"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 9000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+status: {}

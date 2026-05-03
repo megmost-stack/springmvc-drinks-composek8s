@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: drinksdb
+  name: drinksdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drinksdb
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: drinksdb
+    spec:
+      containers:
+      - image: mysql
+        name: mysql
+        resources: {}
+        env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: root
+          - name: MYSQL_DATABASE
+            value: restdb
+          - name: MYSQL_USER
+            value: restadmin
+          - name: MYSQL_PASSWORD
+            value: mome
+status: {}

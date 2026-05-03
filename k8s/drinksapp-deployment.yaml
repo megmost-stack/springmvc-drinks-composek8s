@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: drinksapp
+  name: drinksapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drinksapp
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: drinksapp
+    spec:
+      containers:
+      - image: megmus/spring-drinksapp:0.0.3-SNAPSHOT
+        name: spring-drinksapp
+        env:
+          - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI
+            value: "http://localhost:8080"
+          - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI
+            value: "http://auth-server:9000/oauth2/jwks"
+          - name: SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES
+            value: "oidc-client"
+        resources: {}
+        volumeMounts:
+          - mountPath: /workspace/logs
+            name: logs
+
+      volumes:
+        - name: logs
+          emptyDir: {}
+
+status: {}
