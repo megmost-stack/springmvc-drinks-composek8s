@@ -15,7 +15,6 @@ services:
     networks:
       - drinksLab-net
 
-
   auth-server:
     container_name: auth-server
     image: megmus/spring-auth-server:0.0.3-SNAPSHOT
