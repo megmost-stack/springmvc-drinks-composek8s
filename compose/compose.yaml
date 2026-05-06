@@ -15,6 +15,38 @@ services:
     networks:
       - drinksLab-net
 
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    networks:
+      - drinksLab-net
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8083:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+    networks:
+      - drinksLab-net
+    depends_on:
+      - kafka
 
   auth-server:
     container_name: auth-server
@@ -28,15 +60,14 @@ services:
       SPRING_DATASOURCE_USERNAME: "restadmin"
       SPRING_DATASOURCE_PASSWORD: "mome"
       SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:8080"
-      # ZWINGEND ERFORDERLICH: Damit er die Gateway-URL übernimmt
       SERVER_FORWARD_HEADERS_STRATEGY: "framework"
     depends_on:
       drinksDB:
-          condition: service_healthy
+          condition: service_started
 
   drinks-service:
     container_name: drinks-app
-    image: megmus/spring-drinksapp:0.0.3-SNAPSHOT
+    image: megmus/spring-drinksapp:0.0.4-SNAPSHOT
     ports:
       - "8085"
     networks:
@@ -45,10 +76,63 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     volumes:
       - ~/myapp-logs/:/workspace/logs
     depends_on:
+      - drinksDB
       - auth-server
+
+  icecold-drinks-service:
+    container_name: icecold-drinks-app
+    image: megmus/spring-icecoldservice:0.0.1-SNAPSHOT
+    ports:
+      - "9090"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - auth-server
+      - drinks-service
+      - kafka
+
+  cold-drinks-service:
+    container_name: cold-drinks-app
+    image: megmus/spring-coldservice:0.0.1-SNAPSHOT
+    ports:
+      - "9094"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - auth-server
+      - drinks-service
+      - kafka
+
+  cool-drinks-service:
+    container_name: cool-drinks-app
+    image: megmus/spring-coolservice:0.0.1-SNAPSHOT
+    ports:
+      - "9096"
+    networks:
+      - drinksLab-net
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - auth-server
+      - drinks-service
+      - kafka
 
   drinks-shop:
     container_name: drinks-gateway
