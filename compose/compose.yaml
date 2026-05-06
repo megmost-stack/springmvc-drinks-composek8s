@@ -1,7 +1,7 @@
 services:
   drinksDB:
-    container_name: mvc-mysql-1
     image: mysql:9.7.0
+    container_name: drinksDB
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: restdb
@@ -49,14 +49,14 @@ services:
       - kafka
 
   auth-server:
-    container_name: auth-server
     image: megmus/spring-auth-server:0.0.3-SNAPSHOT
+    container_name: auth-server
     ports:
       - "9000"
     networks:
       - drinksLab-net
     environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mvc-mysql-1:3306/restdb"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://drinksDB:3306/restdb"
       SPRING_DATASOURCE_USERNAME: "restadmin"
       SPRING_DATASOURCE_PASSWORD: "mome"
       SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:8080"
@@ -66,13 +66,16 @@ services:
           condition: service_started
 
   drinks-service:
-    container_name: drinks-app
     image: megmus/spring-drinksapp:0.0.4-SNAPSHOT
+    container_name: drinks-service
     ports:
       - "8085"
     networks:
       - drinksLab-net
     environment:
+      SPRING_APPLICATION_NAME: drinks-service  # Überschreibt dein "mvc"
+      SERVER_PORT: 8085                       # Stellt sicher, dass er auf 8085 lauscht
+      SPRING_DOCKER_COMPOSE_ENABLED: false
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
@@ -84,7 +87,7 @@ services:
       - auth-server
 
   icecold-drinks-service:
-    container_name: icecold-drinks-app
+    container_name: icecolddrinks-service
     image: megmus/spring-icecoldservice:0.0.1-SNAPSHOT
     ports:
       - "9090"
@@ -101,7 +104,7 @@ services:
       - kafka
 
   cold-drinks-service:
-    container_name: cold-drinks-app
+    container_name: colddrinks-service
     image: megmus/spring-coldservice:0.0.1-SNAPSHOT
     ports:
       - "9094"
@@ -118,7 +121,7 @@ services:
       - kafka
 
   cool-drinks-service:
-    container_name: cool-drinks-app
+    container_name: cooldrinks-service
     image: megmus/spring-coolservice:0.0.1-SNAPSHOT
     ports:
       - "9096"
@@ -158,4 +161,5 @@ services:
 
 networks:
   drinksLab-net:
+    name: drinksLab-net
     driver: bridge
