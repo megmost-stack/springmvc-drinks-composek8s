@@ -43,52 +43,78 @@ services:
     environment:
       KAFKA_CLUSTERS_0_NAME: local
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      AUTH_TYPE: DISABLED # Falls du lokal kein Login willst
+      # Sagt der UI, dass sie auf Links mit diesem Präfix reagieren soll
+      SERVER_SERVLET_CONTEXT_PATH: /kafka-ui
     networks:
       - drinksLab-net
     depends_on:
       - kafka
 
   auth-server:
-    image: megmus/spring-auth-server:0.0.3-SNAPSHOT
+    image: megmus/spring-auth-server:0.1.1-SNAPSHOT
     container_name: auth-server
     ports:
       - "9000"
     networks:
       - drinksLab-net
     environment:
+      SPRING_APPLICATION_NAME: "auth-server"
       SPRING_DATASOURCE_URL: "jdbc:mysql://drinksDB:3306/restdb"
       SPRING_DATASOURCE_USERNAME: "restadmin"
       SPRING_DATASOURCE_PASSWORD: "mome"
       SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:8080"
       SERVER_FORWARD_HEADERS_STRATEGY: "framework"
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      LOGGING_INCLUDE_APPLICATION_NAME: "false"
+      MANAGEMENT_OBSERVATION_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
     depends_on:
       drinksDB:
           condition: service_started
+      zipkin:
+          condition: service_healthy
 
   drinks-service:
-    image: megmus/spring-drinksapp:0.0.4-SNAPSHOT
+    image: megmus/spring-drinksapp:0.1.3-SNAPSHOT
     container_name: drinks-service
+    hostname: drinks-service
     ports:
       - "8085"
     networks:
-      - drinksLab-net
+      drinksLab-net:
+        aliases:
+          - drinks-service
     environment:
-      SPRING_APPLICATION_NAME: drinks-service  # Überschreibt dein "mvc"
-      SERVER_PORT: 8085                       # Stellt sicher, dass er auf 8085 lauscht
-      SPRING_DOCKER_COMPOSE_ENABLED: false
+      SPRING_APPLICATION_NAME: "drinks-service"
+      SPRING_PROFILES_ACTIVE: "default"
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://drinksDB:3306/restdb?connectTimeout=10000&socketTimeout=60000&autoReconnect=true"
+      SPRING_DATASOURCE_USERNAME: "restadmin"
+      SPRING_DATASOURCE_PASSWORD: "mome"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      LOGGING_INCLUDE_APPLICATION_NAME: "false"
+      MANAGEMENT_OBSERVATION_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
     volumes:
       - ~/myapp-logs/:/workspace/logs
     depends_on:
-      - drinksDB
-      - auth-server
+      drinksDB:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+      zipkin:
+          condition: service_healthy
 
   icecold-drinks-service:
     container_name: icecolddrinks-service
-    image: megmus/spring-icecoldservice:0.0.1-SNAPSHOT
+    image: megmus/spring-icecoldservice:0.1.1-SNAPSHOT
     ports:
       - "9090"
     networks:
@@ -98,14 +124,24 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      LOGGING_INCLUDE_APPLICATION_NAME: "false"
+      MANAGEMENT_OBSERVATION_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
     depends_on:
-      - auth-server
-      - drinks-service
-      - kafka
+      auth-server:
+        condition: service_started
+      drinks-service:
+        condition: service_started
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_healthy
 
   cold-drinks-service:
     container_name: colddrinks-service
-    image: megmus/spring-coldservice:0.0.1-SNAPSHOT
+    image: megmus/spring-coldservice:0.1.1-SNAPSHOT
     ports:
       - "9094"
     networks:
@@ -115,14 +151,24 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      LOGGING_INCLUDE_APPLICATION_NAME: "false"
+      MANAGEMEN_OBSERVATION_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
     depends_on:
-      - auth-server
-      - drinks-service
-      - kafka
+      auth-server:
+        condition: service_started
+      drinks-service:
+        condition: service_started
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_healthy
 
   cool-drinks-service:
     container_name: cooldrinks-service
-    image: megmus/spring-coolservice:0.0.1-SNAPSHOT
+    image: megmus/spring-coolservice:0.1.1-SNAPSHOT
     ports:
       - "9096"
     networks:
@@ -132,32 +178,76 @@ services:
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      LOGGING_INCLUDE_APPLICATION_NAME: "false"
+      MANAGEMENT_OBSERVATION_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
     depends_on:
-      - auth-server
-      - drinks-service
-      - kafka
+      auth-server:
+        condition: service_started
+      drinks-service:
+        condition: service_started
+      kafka:
+        condition: service_started
+      zipkin:
+        condition: service_healthy
 
   drinks-shop:
-    container_name: drinks-gateway
-    image: megmus/spring-drinksapp-gateway:0.0.4-SNAPSHOT
+    container_name: drinks-shop
+    image: megmus/spring-drinksapp-gateway:0.1.6-SNAPSHOT
     ports:
       - "8080:8080"
     networks:
       - drinksLab-net
     environment:
+      JAVA_TOOL_OPTIONS: "-Dmanagement.tracing.export.zipkin.endpoint=http://zipkin:9411/api/v2/spans -Dmanagement.observations.http.server.requests.enabled=true"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
+
+      SPRING_APPLICATION_NAME: drinks-shop
+      MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      MANAGEMENT_TRACING_EXPORT_ZIPKIN_ENDPOINT: "http://zipkin:9411/api/v2/spans"
+      SPRING_REACTOR_CONTEXT_PROPAGATION: "auto"
+      MANAGEMENT_OBSERVATIONS_HTTP_SERVER_REQUESTS_ENABLED: "true"
+      LOGGING_PATTERN_CORRELATION: "%5p [auth-server,%X{traceId:-},%X{spanId:-}] "
 
       SPRING_CLOUD_GATEWAY_ROUTES_0_ID: "auth-route"
       SPRING_CLOUD_GATEWAY_ROUTES_0_URI: "http://auth-server:9000"
       SPRING_CLOUD_GATEWAY_ROUTES_0_PREDICATES_0: "Path=/oauth2/**"
-
+      SPRING_CLOUD_GATEWAY_ROUTES_0_FILTERS_0: "PreserveHostHeader"
       SPRING_CLOUD_GATEWAY_ROUTES_1_ID: "drinks-service-route"
       SPRING_CLOUD_GATEWAY_ROUTES_1_URI: "http://drinks-service:8085"
       SPRING_CLOUD_GATEWAY_ROUTES_1_PREDICATES_0: "Path=/api/**"
+
+      SPRING_CLOUD_GATEWAY_ROUTES_2_ID: "kafka-ui-route"
+      SPRING_CLOUD_GATEWAY_ROUTES_2_URI: "http://kafka-ui:8080"
+      SPRING_CLOUD_GATEWAY_ROUTES_2_PREDICATES_0: "Path=/kafka-ui/**"
+
     depends_on:
-      - auth-server
-      - drinks-service
+      auth-server:
+        condition: service_started
+      drinks-service:
+        condition: service_started
+      kafka-ui:
+        condition: service_started
+      zipkin:
+        condition: service_healthy
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9411" ]
+      interval: 5s
+      timeout: 2s
+      retries: 5
+    networks:
+      - drinksLab-net
+
 
 networks:
   drinksLab-net:
