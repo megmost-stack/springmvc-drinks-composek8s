@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s # Wie oft soll Prometheus die Daten abfragen?
+
+scrape_configs:
+  - job_name: 'drinks-shop'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['drinks-shop:8080']
+  - job_name: 'auth-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'auth-server:9000' ]
+  - job_name: 'drinks-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'drinks-service:8085' ]
+  - job_name: 'icecold-drinks-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'icecold-drinks-service:9090' ]
+  - job_name: 'cold-drinks-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'cold-drinks-service:9094' ]
+  - job_name: 'cool-drinks-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'cool-drinks-service:9096' ]
