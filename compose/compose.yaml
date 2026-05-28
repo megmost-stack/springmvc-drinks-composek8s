@@ -3,10 +3,10 @@ services:
     image: mysql:9.7.0
     container_name: drinksDB
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: restdb
       MYSQL_USER: restadmin
-      MYSQL_PASSWORD: mome
+      MYSQL_PASSWORD: ${DB_USER_PASSWORD}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "restadmin", "-pmome"]
       interval: 5s
@@ -64,7 +64,7 @@ services:
       SPRING_APPLICATION_NAME: "auth-server"
       SPRING_DATASOURCE_URL: "jdbc:mysql://drinksDB:3306/restdb"
       SPRING_DATASOURCE_USERNAME: "restadmin"
-      SPRING_DATASOURCE_PASSWORD: "mome"
+      SPRING_DATASOURCE_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER: "http://localhost:8080"
       SERVER_FORWARD_HEADERS_STRATEGY: "framework"
       MANAGEMENT_TRACING_SAMPLING_PROBABILITY: "1.0"
@@ -97,7 +97,7 @@ services:
       SPRING_DOCKER_COMPOSE_ENABLED: "false"
       SPRING_DATASOURCE_URL: "jdbc:mysql://drinksDB:3306/restdb?connectTimeout=10000&socketTimeout=60000&autoReconnect=true"
       SPRING_DATASOURCE_USERNAME: "restadmin"
-      SPRING_DATASOURCE_PASSWORD: "mome"
+      SPRING_DATASOURCE_PASSWORD: ${DB_USER_PASSWORD}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "http://localhost:8080"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: "http://auth-server:9000/oauth2/jwks"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "oidc-client"
@@ -285,7 +285,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GR_ADMIN_PASSWORT}
     networks:
       - drinksLab-net
 

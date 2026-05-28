@@ -1,0 +1,17 @@
+repos:
+  # 1. Der OFFIZIELLE Gitleaks-Hook (sucht automatisch nach Passwörtern im Staging)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2  # Oder deine installierte Version
+    hooks:
+      - id: gitleaks
+
+  # 2. Dein funktionierender git-secret Check
+  - repo: local
+    hooks:
+      - id: git-secret-security-check
+        name: git-secret Sicherheits-Check
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        entry: >
+          bash -c "git-secret changes || (echo '❌ FEHLER: Unverschlüsselte Änderungen in .env! Bitte erst manuell \"git secret hide\" ausführen.' && exit 1)"
